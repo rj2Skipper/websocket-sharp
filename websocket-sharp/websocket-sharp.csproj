@@ -3,6 +3,20 @@
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0;net452</TargetFrameworks>
     <RootNamespace>websocket_sharp_dotnet</RootNamespace>
+    <PackageId>SIPSorcery.WebSocketSharp</PackageId>
+    <Version>0.0.1</Version>
+    <Authors>sta.blockhead &amp; Contributors</Authors>
+    <Company>sta.blockhead &amp; Contributors</Company>
+    <Product>SIPSorcery.WebSocketSharp</Product>
+    <Description>A C# implementation of the WebSocket protocol client and server</Description>
+    <PackageReleaseNotes>- Forked from original repo to make .NET Standard 2.0 conformant, apply bug fixes, create nuget package and other general updates.</PackageReleaseNotes>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <Copyright>sta.blockhead</Copyright>
+    <PackageTags>websocket</PackageTags>
+    <RepositoryUrl>https://github.com/sipsorcery/websocket-sharp</RepositoryUrl>
+    <PackageIconUrl>http://www.sipsorcery.com/mainsite/favicon.ico</PackageIconUrl>
+    <PackageProjectUrl>https://github.com/sipsorcery/websocket-sharp</PackageProjectUrl>
+    <RepositoryType>git</RepositoryType>
   </PropertyGroup>
 
   <ItemGroup>
