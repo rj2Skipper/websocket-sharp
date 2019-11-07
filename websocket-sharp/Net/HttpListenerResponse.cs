@@ -150,19 +150,21 @@ namespace WebSocketSharp.Net
     }
 
     /// <summary>
-    /// Gets or sets the number of bytes in the entity body data included in the response.
+    /// Gets or sets the number of bytes in the entity body data included in
+    /// the response.
     /// </summary>
     /// <value>
-    /// A <see cref="long"/> that represents the value of the Content-Length entity-header.
+    /// A <see cref="long"/> that represents the value of the Content-Length
+    /// header.
     /// </value>
     /// <exception cref="ArgumentOutOfRangeException">
     /// The value specified for a set operation is less than zero.
     /// </exception>
     /// <exception cref="InvalidOperationException">
-    /// The response has already been sent.
+    /// The response is already being sent.
     /// </exception>
     /// <exception cref="ObjectDisposedException">
-    /// This object is closed.
+    /// This instance is closed.
     /// </exception>
     public long ContentLength64 {
       get {
@@ -170,9 +172,18 @@ namespace WebSocketSharp.Net
       }
 
       set {
-        checkDisposedOrHeadersSent ();
-        if (value < 0)
-          throw new ArgumentOutOfRangeException ("Less than zero.", "value");
+        if (_disposed)
+          throw new ObjectDisposedException (GetType ().ToString ());
+
+        if (_headersSent) {
+          var msg = "The response is already being sent.";
+          throw new InvalidOperationException (msg);
+        }
+
+        if (value < 0) {
+          var msg = "Less than zero.";
+          throw new ArgumentOutOfRangeException (msg, "value");
+        }
 
         _contentLength = value;
       }
@@ -255,17 +266,23 @@ namespace WebSocketSharp.Net
     }
 
     /// <summary>
-    /// Gets or sets a value indicating whether the server requests a persistent connection.
+    /// Gets or sets a value indicating whether the server requests
+    /// a persistent connection.
     /// </summary>
     /// <value>
-    /// <c>true</c> if the server requests a persistent connection; otherwise, <c>false</c>.
-    /// The default value is <c>true</c>.
+    ///   <para>
+    ///   <c>true</c> if the server requests a persistent connection;
+    ///   otherwise, <c>false</c>.
+    ///   </para>
+    ///   <para>
+    ///   The default value is <c>true</c>.
+    ///   </para>
     /// </value>
     /// <exception cref="InvalidOperationException">
-    /// The response has already been sent.
+    /// The response is already being sent.
     /// </exception>
     /// <exception cref="ObjectDisposedException">
-    /// This object is closed.
+    /// This instance is closed.
     /// </exception>
     public bool KeepAlive {
       get {
@@ -273,7 +290,14 @@ namespace WebSocketSharp.Net
       }
 
       set {
-        checkDisposedOrHeadersSent ();
+        if (_disposed)
+          throw new ObjectDisposedException (GetType ().ToString ());
+
+        if (_headersSent) {
+          var msg = "The response is already being sent.";
+          throw new InvalidOperationException (msg);
+        }
+
         _keepAlive = value;
       }
     }
@@ -301,23 +325,33 @@ namespace WebSocketSharp.Net
     }
 
     /// <summary>
-    /// Gets or sets the HTTP version used in the response.
+    /// Gets or sets the HTTP version used for the response.
     /// </summary>
     /// <value>
-    /// A <see cref="Version"/> that represents the version used in the response.
+    /// A <see cref="Version"/> that represents the HTTP version used for
+    /// the response.
     /// </value>
     /// <exception cref="ArgumentNullException">
     /// The value specified for a set operation is <see langword="null"/>.
     /// </exception>
     /// <exception cref="ArgumentException">
-    /// The value specified for a set operation doesn't have its <c>Major</c> property set to 1 or
-    /// doesn't have its <c>Minor</c> property set to either 0 or 1.
+    ///   <para>
+    ///   The value specified for a set operation does not have its Major
+    ///   property set to 1.
+    ///   </para>
+    ///   <para>
+    ///   -or-
+    ///   </para>
+    ///   <para>
+    ///   The value specified for a set operation does not have its Minor
+    ///   property set to either 0 or 1.
+    ///   </para>
     /// </exception>
     /// <exception cref="InvalidOperationException">
-    /// The response has already been sent.
+    /// The response is already being sent.
     /// </exception>
     /// <exception cref="ObjectDisposedException">
-    /// This object is closed.
+    /// This instance is closed.
     /// </exception>
     public Version ProtocolVersion {
       get {
@@ -325,12 +359,26 @@ namespace WebSocketSharp.Net
       }
 
       set {
-        checkDisposedOrHeadersSent ();
+        if (_disposed)
+          throw new ObjectDisposedException (GetType ().ToString ());
+
+        if (_headersSent) {
+          var msg = "The response is already being sent.";
+          throw new InvalidOperationException (msg);
+        }
+
         if (value == null)
           throw new ArgumentNullException ("value");
 
-        if (value.Major != 1 || (value.Minor != 0 && value.Minor != 1))
-          throw new ArgumentException ("Not 1.0 or 1.1.", "value");
+        if (value.Major != 1) {
+          var msg = "Its Major property is not 1.";
+          throw new ArgumentException (msg, "value");
+        }
+
+        if (value.Minor < 0 || value.Minor > 1) {
+          var msg = "Its Minor property is not 0 or 1.";
+          throw new ArgumentException (msg, "value");
+        }
 
         _version = value;
       }
@@ -381,17 +429,23 @@ namespace WebSocketSharp.Net
     }
 
     /// <summary>
-    /// Gets or sets a value indicating whether the response uses the chunked transfer encoding.
+    /// Gets or sets a value indicating whether the response uses the chunked
+    /// transfer encoding.
     /// </summary>
     /// <value>
-    /// <c>true</c> if the response uses the chunked transfer encoding;
-    /// otherwise, <c>false</c>. The default value is <c>false</c>.
+    ///   <para>
+    ///   <c>true</c> if the response uses the chunked transfer encoding;
+    ///   otherwise, <c>false</c>.
+    ///   </para>
+    ///   <para>
+    ///   The default value is <c>false</c>.
+    ///   </para>
     /// </value>
     /// <exception cref="InvalidOperationException">
-    /// The response has already been sent.
+    /// The response is already being sent.
     /// </exception>
     /// <exception cref="ObjectDisposedException">
-    /// This object is closed.
+    /// This instance is closed.
     /// </exception>
     public bool SendChunked {
       get {
@@ -399,7 +453,14 @@ namespace WebSocketSharp.Net
       }
 
       set {
-        checkDisposedOrHeadersSent ();
+        if (_disposed)
+          throw new ObjectDisposedException (GetType ().ToString ());
+
+        if (_headersSent) {
+          var msg = "The response is already being sent.";
+          throw new InvalidOperationException (msg);
+        }
+
         _sendChunked = value;
       }
     }
@@ -408,18 +469,28 @@ namespace WebSocketSharp.Net
     /// Gets or sets the HTTP status code returned to the client.
     /// </summary>
     /// <value>
-    /// An <see cref="int"/> that represents the status code for the response to
-    /// the request. The default value is same as <see cref="HttpStatusCode.OK"/>.
+    ///   <para>
+    ///   An <see cref="int"/> that represents the HTTP status code for
+    ///   the response to the request.
+    ///   </para>
+    ///   <para>
+    ///   The default value is 200. It is same as
+    ///   <see cref="HttpStatusCode.OK"/>.
+    ///   </para>
     /// </value>
     /// <exception cref="InvalidOperationException">
-    /// The response has already been sent.
+    /// The response is already being sent.
     /// </exception>
     /// <exception cref="ObjectDisposedException">
-    /// This object is closed.
+    /// This instance is closed.
     /// </exception>
     /// <exception cref="System.Net.ProtocolViolationException">
-    /// The value specified for a set operation is invalid. Valid values are
-    /// between 100 and 999 inclusive.
+    ///   <para>
+    ///   The value specified for a set operation is invalid.
+    ///   </para>
+    ///   <para>
+    ///   Valid values are between 100 and 999 inclusive.
+    ///   </para>
     /// </exception>
     public int StatusCode {
       get {
@@ -427,10 +498,18 @@ namespace WebSocketSharp.Net
       }
 
       set {
-        checkDisposedOrHeadersSent ();
-        if (value < 100 || value > 999)
-          throw new System.Net.ProtocolViolationException (
-            "A value isn't between 100 and 999 inclusive.");
+        if (_disposed)
+          throw new ObjectDisposedException (GetType ().ToString ());
+
+        if (_headersSent) {
+          var msg = "The response is already being sent.";
+          throw new InvalidOperationException (msg);
+        }
+
+        if (value < 100 || value > 999) {
+          var msg = "A value is not between 100 and 999 inclusive.";
+          throw new System.Net.ProtocolViolationException (msg);
+        }
 
         _statusCode = value;
         _statusDescription = value.GetStatusDescription ();
@@ -438,22 +517,35 @@ namespace WebSocketSharp.Net
     }
 
     /// <summary>
-    /// Gets or sets the description of the HTTP status code returned to the client.
+    /// Gets or sets the description of the HTTP status code returned to
+    /// the client.
     /// </summary>
     /// <value>
-    /// A <see cref="string"/> that represents the description of the status code. The default
-    /// value is the <see href="http://tools.ietf.org/html/rfc2616#section-10">RFC 2616</see>
-    /// description for the <see cref="HttpListenerResponse.StatusCode"/> property value,
-    /// or <see cref="String.Empty"/> if an RFC 2616 description doesn't exist.
+    ///   <para>
+    ///   A <see cref="string"/> that represents the description of
+    ///   the HTTP status code for the response to the request.
+    ///   </para>
+    ///   <para>
+    ///   The default value is
+    ///   the <see href="http://tools.ietf.org/html/rfc2616#section-10">
+    ///   RFC 2616</see> description for the <see cref="StatusCode"/>
+    ///   property value.
+    ///   </para>
+    ///   <para>
+    ///   An empty string if an RFC 2616 description does not exist.
+    ///   </para>
     /// </value>
+    /// <exception cref="ArgumentNullException">
+    /// The value specified for a set operation is <see langword="null"/>.
+    /// </exception>
     /// <exception cref="ArgumentException">
-    /// The value specified for a set operation contains invalid characters.
+    /// The value specified for a set operation contains an invalid character.
     /// </exception>
     /// <exception cref="InvalidOperationException">
-    /// The response has already been sent.
+    /// The response is already being sent.
     /// </exception>
     /// <exception cref="ObjectDisposedException">
-    /// This object is closed.
+    /// This instance is closed.
     /// </exception>
     public string StatusDescription {
       get {
@@ -461,14 +553,31 @@ namespace WebSocketSharp.Net
       }
 
       set {
-        checkDisposedOrHeadersSent ();
-        if (value == null || value.Length == 0) {
+        if (_disposed)
+          throw new ObjectDisposedException (GetType ().ToString ());
+
+        if (_headersSent) {
+          var msg = "The response is already being sent.";
+          throw new InvalidOperationException (msg);
+        }
+
+        if (value == null)
+          throw new ArgumentNullException ("value");
+
+        if (value.Length == 0) {
           _statusDescription = _statusCode.GetStatusDescription ();
           return;
         }
 
-        if (!value.IsText () || value.IndexOfAny (new[] { '\r', '\n' }) > -1)
-          throw new ArgumentException ("Contains invalid characters.", "value");
+        if (!value.IsText ()) {
+          var msg = "It contains an invalid character.";
+          throw new ArgumentException (msg, "value");
+        }
+
+        if (value.IndexOfAny (new[] { '\r', '\n' }) > -1) {
+          var msg = "It contains an invalid character.";
+          throw new ArgumentException (msg, "value");
+        }
 
         _statusDescription = value;
       }
@@ -493,15 +602,6 @@ namespace WebSocketSharp.Net
           return true;
 
       return false;
-    }
-
-    private void checkDisposedOrHeadersSent ()
-    {
-      if (_disposed)
-        throw new ObjectDisposedException (GetType ().ToString ());
-
-      if (_headersSent)
-        throw new InvalidOperationException ("Cannot be changed after the headers are sent.");
     }
 
     private void close (bool force)
@@ -797,37 +897,47 @@ namespace WebSocketSharp.Net
 
     /// <summary>
     /// Configures the response to redirect the client's request to
-    /// the specified <paramref name="url"/>.
+    /// the specified URL.
     /// </summary>
     /// <remarks>
-    /// This method sets the <see cref="HttpListenerResponse.RedirectLocation"/> property to
-    /// <paramref name="url"/>, the <see cref="HttpListenerResponse.StatusCode"/> property to
-    /// <c>302</c>, and the <see cref="HttpListenerResponse.StatusDescription"/> property to
-    /// <c>"Found"</c>.
+    /// This method sets the <see cref="RedirectLocation"/> property to
+    /// <paramref name="url"/>, the <see cref="StatusCode"/> property to
+    /// 302, and the <see cref="StatusDescription"/> property to "Found".
     /// </remarks>
     /// <param name="url">
-    /// A <see cref="string"/> that represents the URL to redirect the client's request to.
+    /// A <see cref="string"/> that represents the URL to which the client is
+    /// redirected to locate a requested resource.
     /// </param>
     /// <exception cref="ArgumentNullException">
     /// <paramref name="url"/> is <see langword="null"/>.
     /// </exception>
     /// <exception cref="ArgumentException">
-    /// <paramref name="url"/> isn't an absolute URL.
+    /// <paramref name="url"/> is not an absolute URL.
     /// </exception>
     /// <exception cref="InvalidOperationException">
-    /// The response has already been sent.
+    /// The response is already being sent.
     /// </exception>
     /// <exception cref="ObjectDisposedException">
-    /// This object is closed.
+    /// This instance is closed.
     /// </exception>
     public void Redirect (string url)
     {
-      checkDisposedOrHeadersSent ();
+      if (_disposed)
+        throw new ObjectDisposedException (GetType ().ToString ());
+
+      if (_headersSent) {
+        var msg = "The response is already being sent.";
+        throw new InvalidOperationException (msg);
+      }
+
       if (url == null)
         throw new ArgumentNullException ("url");
 
-      Uri uri = null;
-      if (!url.MaybeUri () || !Uri.TryCreate (url, UriKind.Absolute, out uri))
+      if (!url.MaybeUri ())
+        throw new ArgumentException ("Not an absolute URL.", "url");
+
+      Uri uri;
+      if (!Uri.TryCreate (url, UriKind.Absolute, out uri))
         throw new ArgumentException ("Not an absolute URL.", "url");
 
       _location = url;
