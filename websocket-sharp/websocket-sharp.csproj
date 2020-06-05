@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netstandard2.1;netcoreapp3.1;net452</TargetFrameworks>
+    <TargetFrameworks>netstandard2.1;netcoreapp3.1;net452;net472</TargetFrameworks>
     <RootNamespace>websocket_sharp_dotnet</RootNamespace>
     <PackageId>SIPSorcery.WebSocketSharp</PackageId>
     <Version>0.0.1</Version>
