@@ -1,3 +1,13 @@
+[![Build status](https://ci.appveyor.com/api/projects/status/kc0qd3305xx1hnwr/branch/master?svg=true)](https://ci.appveyor.com/project/sipsorcery/websocket-sharp/branch/master)
+
+**This repo is a very reluctant fork of the original [websocket-sharp](https://github.com/sta/websocket-sharp). The original repo is an excellent library but sadly does not currently seem to be accepting updates. There are numerous forks that apply partial fixes but they have also mostly suffer from lack of maintenance. This fork and associated NuGet pakcage are predominantly to be able to satisfy my own requirements for a .NET Standard compliant Web Socket Server.**
+
+The goals of this fork are:
+- .NET Standard compatibility,
+- Bug fixes,
+- Update important bits of code from the Event Based Asynchronous Pattern to the much more succinct Task Based Asynchronous Pattern [article](https://docs.microsoft.com/en-us/dotnet/standard/asynchronous-programming-patterns/task-based-asynchronous-pattern-tap). Note this is a work in progress and so far only `SendAsync` has been looked at,
+- A maintainable NuGet package.
+
 ![Logo](websocket-sharp_logo.png)
 
 ## Welcome to websocket-sharp! ##
