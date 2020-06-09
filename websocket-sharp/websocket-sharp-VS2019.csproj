@@ -17,6 +17,7 @@
     <PackageIconUrl>http://www.sipsorcery.com/mainsite/favicon.ico</PackageIconUrl>
     <PackageProjectUrl>https://github.com/sipsorcery/websocket-sharp</PackageProjectUrl>
     <RepositoryType>git</RepositoryType>
+    <AssemblyName>websocket-sharp</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>
