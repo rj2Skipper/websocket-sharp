@@ -9,7 +9,7 @@
  *
  * Copyright (c) 2003 Ximian, Inc. (http://www.ximian.com)
  * Copyright (c) 2007 Novell, Inc. (http://www.novell.com)
- * Copyright (c) 2012-2015 sta.blockhead
+ * Copyright (c) 2012-2020 sta.blockhead
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -667,7 +667,7 @@ namespace WebSocketSharp.Net
     ///   One of the <see cref="HttpRequestHeader"/> enum values.
     ///   </para>
     ///   <para>
-    ///   It represents the request header to get or set.
+    ///   It specifies the request header to get or set.
     ///   </para>
     /// </param>
     /// <exception cref="ArgumentException">
@@ -712,7 +712,7 @@ namespace WebSocketSharp.Net
     ///   One of the <see cref="HttpResponseHeader"/> enum values.
     ///   </para>
     ///   <para>
-    ///   It represents the response header to get or set.
+    ///   It specifies the response header to get or set.
     ///   </para>
     /// </param>
     /// <exception cref="ArgumentException">
@@ -763,23 +763,17 @@ namespace WebSocketSharp.Net
 
     #region Private Methods
 
-    private void add (string name, string value, bool ignoreRestricted)
+    private void add (string name, string value, HttpHeaderType headerType)
     {
-      var act = ignoreRestricted
-                ? (Action <string, string>) addWithoutCheckingNameAndRestricted
-                : addWithoutCheckingName;
+      base.Add (name, value);
 
-      doWithCheckingState (act, checkName (name), value, true);
-    }
+      if (_state != HttpHeaderType.Unspecified)
+        return;
 
-    private void addWithoutCheckingName (string name, string value)
-    {
-      doWithoutCheckingName (base.Add, name, value);
-    }
+      if (headerType == HttpHeaderType.Unspecified)
+        return;
 
-    private void addWithoutCheckingNameAndRestricted (string name, string value)
-    {
-      base.Add (name, checkValue (value));
+      _state = headerType;
     }
 
     private void checkAllowed (HttpHeaderType headerType)
@@ -797,53 +791,35 @@ namespace WebSocketSharp.Net
       }
     }
 
-    private static string checkName (string name)
+    private static string checkName (string name, string paramName)
     {
-      if (name == null)
-        throw new ArgumentNullException ("name");
+      if (name == null) {
+        var msg = "The name is null.";
 
-      if (name.Length == 0)
-        throw new ArgumentException ("An empty string.", "name");
+        throw new ArgumentNullException (paramName, msg);
+      }
+
+      if (name.Length == 0) {
+        var msg = "The name is an empty string.";
+
+        throw new ArgumentException (msg, paramName);
+      }
 
       name = name.Trim ();
 
-      if (name.Length == 0)
-        throw new ArgumentException ("A string of spaces.", "name");
+      if (name.Length == 0) {
+        var msg = "The name is a string of spaces.";
+
+        throw new ArgumentException (msg, paramName);
+      }
 
       if (!name.IsToken ()) {
-        var msg = "It contains an invalid character.";
+        var msg = "The name contains an invalid character.";
 
-        throw new ArgumentException (msg, "name");
+        throw new ArgumentException (msg, paramName);
       }
 
       return name;
-    }
-
-    private void checkRestricted (string name)
-    {
-      if (_internallyUsed)
-        return;
-
-      var headerType = getHeaderType (name);
-      var res = headerType == HttpHeaderType.Response;
-
-      if (isRestricted (name, res)) {
-        var msg = "The header is a restricted header.";
-
-        throw new ArgumentException (msg);
-      }
-    }
-
-    private void checkRestricted (string name, bool response)
-    {
-      if (_internallyUsed)
-        return;
-
-      if (isRestricted (name, response)) {
-        var msg = "The header is a restricted header.";
-
-        throw new ArgumentException (msg);
-      }
     }
 
     private void checkRestricted (string name, HttpHeaderType headerType)
@@ -860,28 +836,7 @@ namespace WebSocketSharp.Net
       }
     }
 
-    private void checkState (bool response)
-    {
-      if (_state == HttpHeaderType.Unspecified)
-        return;
-
-      if (response) {
-        if (_state == HttpHeaderType.Response)
-          return;
-
-        var msg = "This collection is already in use for the request headers.";
-
-        throw new InvalidOperationException (msg);
-      }
-
-      if (_state == HttpHeaderType.Response) {
-        var msg = "This collection is already in use for the response headers.";
-
-        throw new InvalidOperationException (msg);
-      }
-    }
-
-    private static string checkValue (string value)
+    private static string checkValue (string value, string paramName)
     {
       if (value == null)
         return String.Empty;
@@ -894,67 +849,18 @@ namespace WebSocketSharp.Net
         return value;
 
       if (len > 65535) {
-        var msg = "The length is greater than 65,535 characters.";
+        var msg = "The length of the value is greater than 65,535 characters.";
 
-        throw new ArgumentOutOfRangeException ("value", msg);
+        throw new ArgumentOutOfRangeException (paramName, msg);
       }
 
       if (!value.IsText ()) {
-        var msg = "It contains an invalid character.";
+        var msg = "The value contains an invalid character.";
 
-        throw new ArgumentException (msg, "value");
+        throw new ArgumentException (msg, paramName);
       }
 
       return value;
-    }
-
-    private void doWithCheckingState (
-      Action <string, string> action, string name, string value, bool setState
-    )
-    {
-      var headerType = getHeaderType (name);
-
-      if (headerType == HttpHeaderType.Response) {
-        doWithCheckingState (action, name, value, true, setState);
-
-        return;
-      }
-
-      if (headerType == HttpHeaderType.Request) {
-        doWithCheckingState (action, name, value, false, setState);
-
-        return;
-      }
-
-      action (name, value);
-    }
-
-    private void doWithCheckingState (
-      Action <string, string> action,
-      string name,
-      string value,
-      bool response,
-      bool setState
-    )
-    {
-      checkState (response);
-      action (name, value);
-
-      setState = setState && _state == HttpHeaderType.Unspecified;
-
-      if (!setState)
-        return;
-
-      _state = response ? HttpHeaderType.Response : HttpHeaderType.Request;
-    }
-
-    private void doWithoutCheckingName (
-      Action <string, string> action, string name, string value
-    )
-    {
-      checkRestricted (name);
-      value = checkValue (value);
-      action (name, value);
     }
 
     private static HttpHeaderInfo getHeaderInfo (string name)
@@ -962,7 +868,7 @@ namespace WebSocketSharp.Net
       var comparison = StringComparison.InvariantCultureIgnoreCase;
 
       foreach (var headerInfo in _headers.Values) {
-        if (headerInfo.Name.Equals (name, comparison))
+        if (headerInfo.HeaderName.Equals (name, comparison))
           return headerInfo;
       }
 
@@ -974,7 +880,7 @@ namespace WebSocketSharp.Net
       HttpHeaderInfo headerInfo;
 
       return _headers.TryGetValue (key, out headerInfo)
-             ? headerInfo.Name
+             ? headerInfo.HeaderName
              : null;
     }
 
@@ -1047,12 +953,21 @@ namespace WebSocketSharp.Net
                 ? header.Substring (idx + 1)
                 : String.Empty;
 
-      InternalSet (name, val, response);
+      name = checkName (name, "header");
+      val = checkValue (val, "header");
+
+      if (isMultiValue (name, response)) {
+        base.Add (name, val);
+
+        return;
+      }
+
+      base.Set (name, val);
     }
 
     internal void InternalSet (string name, string value, bool response)
     {
-      value = checkValue (value);
+      value = checkValue (value, "value");
 
       if (isMultiValue (name, response)) {
         base.Add (name, value);
@@ -1115,6 +1030,12 @@ namespace WebSocketSharp.Net
     ///   -or-
     ///   </para>
     ///   <para>
+    ///   <paramref name="headerName"/> is a string of spaces.
+    ///   </para>
+    ///   <para>
+    ///   -or-
+    ///   </para>
+    ///   <para>
     ///   <paramref name="headerName"/> contains an invalid character.
     ///   </para>
     ///   <para>
@@ -1133,7 +1054,13 @@ namespace WebSocketSharp.Net
     /// </exception>
     protected void AddWithoutValidate (string headerName, string headerValue)
     {
-      add (headerName, headerValue, true);
+      headerName = checkName (headerName, "headerName");
+      headerValue = checkValue (headerValue, "headerValue");
+
+      var headerType = getHeaderType (headerName);
+
+      checkAllowed (headerType);
+      add (headerName, headerValue, headerType);
     }
 
     #endregion
@@ -1164,13 +1091,13 @@ namespace WebSocketSharp.Net
     ///   -or-
     ///   </para>
     ///   <para>
-    ///   <paramref name="header"/> is a restricted header.
+    ///   The name part of <paramref name="header"/> is an empty string.
     ///   </para>
     ///   <para>
     ///   -or-
     ///   </para>
     ///   <para>
-    ///   The name part of <paramref name="header"/> is an empty string.
+    ///   The name part of <paramref name="header"/> is a string of spaces.
     ///   </para>
     ///   <para>
     ///   -or-
@@ -1185,6 +1112,12 @@ namespace WebSocketSharp.Net
     ///   <para>
     ///   The value part of <paramref name="header"/> contains an invalid
     ///   character.
+    ///   </para>
+    ///   <para>
+    ///   -or-
+    ///   </para>
+    ///   <para>
+    ///   <paramref name="header"/> is a restricted header.
     ///   </para>
     /// </exception>
     /// <exception cref="ArgumentOutOfRangeException">
@@ -1220,7 +1153,14 @@ namespace WebSocketSharp.Net
                 ? header.Substring (idx + 1)
                 : String.Empty;
 
-      add (name, val, false);
+      name = checkName (name, "header");
+      val = checkValue (val, "header");
+
+      var headerType = getHeaderType (name);
+
+      checkRestricted (name, headerType);
+      checkAllowed (headerType);
+      add (name, val, headerType);
     }
 
     /// <summary>
@@ -1240,13 +1180,13 @@ namespace WebSocketSharp.Net
     /// </param>
     /// <exception cref="ArgumentException">
     ///   <para>
-    ///   <paramref name="header"/> is a restricted header.
+    ///   <paramref name="value"/> contains an invalid character.
     ///   </para>
     ///   <para>
     ///   -or-
     ///   </para>
     ///   <para>
-    ///   <paramref name="value"/> contains an invalid character.
+    ///   <paramref name="header"/> is a restricted header.
     ///   </para>
     /// </exception>
     /// <exception cref="ArgumentOutOfRangeException">
@@ -1258,10 +1198,14 @@ namespace WebSocketSharp.Net
     /// </exception>
     public void Add (HttpRequestHeader header, string value)
     {
+      value = checkValue (value, "value");
+
       var key = header.ToString ();
       var name = getHeaderName (key);
 
-      doWithCheckingState (addWithoutCheckingName, name, value, false, true);
+      checkRestricted (name, HttpHeaderType.Request);
+      checkAllowed (HttpHeaderType.Request);
+      add (name, value, HttpHeaderType.Request);
     }
 
     /// <summary>
@@ -1281,13 +1225,13 @@ namespace WebSocketSharp.Net
     /// </param>
     /// <exception cref="ArgumentException">
     ///   <para>
-    ///   <paramref name="header"/> is a restricted header.
+    ///   <paramref name="value"/> contains an invalid character.
     ///   </para>
     ///   <para>
     ///   -or-
     ///   </para>
     ///   <para>
-    ///   <paramref name="value"/> contains an invalid character.
+    ///   <paramref name="header"/> is a restricted header.
     ///   </para>
     /// </exception>
     /// <exception cref="ArgumentOutOfRangeException">
@@ -1299,28 +1243,49 @@ namespace WebSocketSharp.Net
     /// </exception>
     public void Add (HttpResponseHeader header, string value)
     {
+      value = checkValue (value, "value");
+
       var key = header.ToString ();
       var name = getHeaderName (key);
 
-      doWithCheckingState (addWithoutCheckingName, name, value, true, true);
+      checkRestricted (name, HttpHeaderType.Response);
+      checkAllowed (HttpHeaderType.Response);
+      add (name, value, HttpHeaderType.Response);
     }
 
     /// <summary>
-    /// Adds a header with the specified <paramref name="name"/> and
-    /// <paramref name="value"/> to the collection.
+    /// Adds a header with the specified name and value to the collection.
     /// </summary>
     /// <param name="name">
-    /// A <see cref="string"/> that represents the name of the header to add.
+    /// A <see cref="string"/> that specifies the name of the header to add.
     /// </param>
     /// <param name="value">
-    /// A <see cref="string"/> that represents the value of the header to add.
+    /// A <see cref="string"/> that specifies the value of the header to add.
     /// </param>
     /// <exception cref="ArgumentNullException">
-    /// <paramref name="name"/> is <see langword="null"/> or empty.
+    /// <paramref name="name"/> is <see langword="null"/>.
     /// </exception>
     /// <exception cref="ArgumentException">
     ///   <para>
-    ///   <paramref name="name"/> or <paramref name="value"/> contains invalid characters.
+    ///   <paramref name="name"/> is an empty string.
+    ///   </para>
+    ///   <para>
+    ///   -or-
+    ///   </para>
+    ///   <para>
+    ///   <paramref name="name"/> is a string of spaces.
+    ///   </para>
+    ///   <para>
+    ///   -or-
+    ///   </para>
+    ///   <para>
+    ///   <paramref name="name"/> contains an invalid character.
+    ///   </para>
+    ///   <para>
+    ///   -or-
+    ///   </para>
+    ///   <para>
+    ///   <paramref name="value"/> contains an invalid character.
     ///   </para>
     ///   <para>
     ///   -or-
@@ -1330,15 +1295,22 @@ namespace WebSocketSharp.Net
     ///   </para>
     /// </exception>
     /// <exception cref="ArgumentOutOfRangeException">
-    /// The length of <paramref name="value"/> is greater than 65,535 characters.
+    /// The length of <paramref name="value"/> is greater than 65,535
+    /// characters.
     /// </exception>
     /// <exception cref="InvalidOperationException">
-    /// The current <see cref="WebHeaderCollection"/> instance doesn't allow
-    /// the header <paramref name="name"/>.
+    /// This instance does not allow the header.
     /// </exception>
     public override void Add (string name, string value)
     {
-      add (name, value, false);
+      name = checkName (name, "name");
+      value = checkValue (value, "value");
+
+      var headerType = getHeaderType (name);
+
+      checkRestricted (name, headerType);
+      checkAllowed (headerType);
+      add (name, value, headerType);
     }
 
     /// <summary>
@@ -1351,16 +1323,18 @@ namespace WebSocketSharp.Net
     }
 
     /// <summary>
-    /// Get the value of the header at the specified <paramref name="index"/> in the collection.
+    /// Get the value of the header at the specified index in the collection.
     /// </summary>
     /// <returns>
     /// A <see cref="string"/> that receives the value of the header.
     /// </returns>
     /// <param name="index">
-    /// An <see cref="int"/> that represents the zero-based index of the header to find.
+    /// An <see cref="int"/> that specifies the zero-based index of the header
+    /// to find.
     /// </param>
     /// <exception cref="ArgumentOutOfRangeException">
-    /// <paramref name="index"/> is out of allowable range of indexes for the collection.
+    /// <paramref name="index"/> is out of allowable range of indexes for
+    /// the collection.
     /// </exception>
     public override string Get (int index)
     {
@@ -1368,14 +1342,18 @@ namespace WebSocketSharp.Net
     }
 
     /// <summary>
-    /// Get the value of the header with the specified <paramref name="name"/> in the collection.
+    /// Get the value of the header with the specified name in the collection.
     /// </summary>
     /// <returns>
-    /// A <see cref="string"/> that receives the value of the header if found;
-    /// otherwise, <see langword="null"/>.
+    ///   <para>
+    ///   A <see cref="string"/> that receives the value of the header.
+    ///   </para>
+    ///   <para>
+    ///   <see langword="null"/> if not found.
+    ///   </para>
     /// </returns>
     /// <param name="name">
-    /// A <see cref="string"/> that represents the name of the header to find.
+    /// A <see cref="string"/> that specifies the name of the header to find.
     /// </param>
     public override string Get (string name)
     {
@@ -1386,7 +1364,8 @@ namespace WebSocketSharp.Net
     /// Gets the enumerator used to iterate through the collection.
     /// </summary>
     /// <returns>
-    /// An <see cref="IEnumerator"/> instance used to iterate through the collection.
+    /// An <see cref="IEnumerator"/> instance used to iterate through
+    /// the collection.
     /// </returns>
     public override IEnumerator GetEnumerator ()
     {
@@ -1394,16 +1373,18 @@ namespace WebSocketSharp.Net
     }
 
     /// <summary>
-    /// Get the name of the header at the specified <paramref name="index"/> in the collection.
+    /// Get the name of the header at the specified index in the collection.
     /// </summary>
     /// <returns>
-    /// A <see cref="string"/> that receives the header name.
+    /// A <see cref="string"/> that receives the name of the header.
     /// </returns>
     /// <param name="index">
-    /// An <see cref="int"/> that represents the zero-based index of the header to find.
+    /// An <see cref="int"/> that specifies the zero-based index of the header
+    /// to find.
     /// </param>
     /// <exception cref="ArgumentOutOfRangeException">
-    /// <paramref name="index"/> is out of allowable range of indexes for the collection.
+    /// <paramref name="index"/> is out of allowable range of indexes for
+    /// the collection.
     /// </exception>
     public override string GetKey (int index)
     {
@@ -1411,38 +1392,51 @@ namespace WebSocketSharp.Net
     }
 
     /// <summary>
-    /// Gets an array of header values stored in the specified <paramref name="index"/> position of
-    /// the collection.
+    /// Get the values of the header at the specified index in the collection.
     /// </summary>
     /// <returns>
-    /// An array of <see cref="string"/> that receives the header values if found;
-    /// otherwise, <see langword="null"/>.
+    ///   <para>
+    ///   An array of <see cref="string"/> that receives the values of
+    ///   the header.
+    ///   </para>
+    ///   <para>
+    ///   <see langword="null"/> if not present.
+    ///   </para>
     /// </returns>
     /// <param name="index">
-    /// An <see cref="int"/> that represents the zero-based index of the header to find.
+    /// An <see cref="int"/> that specifies the zero-based index of the header
+    /// to find.
     /// </param>
     /// <exception cref="ArgumentOutOfRangeException">
-    /// <paramref name="index"/> is out of allowable range of indexes for the collection.
+    /// <paramref name="index"/> is out of allowable range of indexes for
+    /// the collection.
     /// </exception>
     public override string[] GetValues (int index)
     {
       var vals = base.GetValues (index);
+
       return vals != null && vals.Length > 0 ? vals : null;
     }
 
     /// <summary>
-    /// Gets an array of header values stored in the specified <paramref name="header"/>.
+    /// Get the values of the header with the specified name in the collection.
     /// </summary>
     /// <returns>
-    /// An array of <see cref="string"/> that receives the header values if found;
-    /// otherwise, <see langword="null"/>.
+    ///   <para>
+    ///   An array of <see cref="string"/> that receives the values of
+    ///   the header.
+    ///   </para>
+    ///   <para>
+    ///   <see langword="null"/> if not present.
+    ///   </para>
     /// </returns>
-    /// <param name="header">
-    /// A <see cref="string"/> that represents the name of the header to find.
+    /// <param name="name">
+    /// A <see cref="string"/> that specifies the name of the header to find.
     /// </param>
-    public override string[] GetValues (string header)
+    public override string[] GetValues (string name)
     {
-      var vals = base.GetValues (header);
+      var vals = base.GetValues (name);
+
       return vals != null && vals.Length > 0 ? vals : null;
     }
 
@@ -1556,32 +1550,18 @@ namespace WebSocketSharp.Net
     /// </exception>
     public static bool IsRestricted (string headerName, bool response)
     {
-      if (headerName == null)
-        throw new ArgumentNullException ("headerName");
-
-      if (headerName.Length == 0)
-        throw new ArgumentException ("An empty string.", "headerName");
-
-      headerName = headerName.Trim ();
-
-      if (headerName.Length == 0)
-        throw new ArgumentException ("A string of spaces.", "headerName");
-
-      if (!headerName.IsToken ()) {
-        var msg = "It contains an invalid character.";
-
-        throw new ArgumentException (msg, "headerName");
-      }
+      headerName = checkName (headerName, "headerName");
 
       return isRestricted (headerName, response);
     }
 
     /// <summary>
-    /// Implements the <see cref="ISerializable"/> interface and raises the deserialization event
-    /// when the deserialization is complete.
+    /// Implements the <see cref="ISerializable"/> interface and raises
+    /// the deserialization event when the deserialization is complete.
     /// </summary>
     /// <param name="sender">
-    /// An <see cref="object"/> that represents the source of the deserialization event.
+    /// An <see cref="object"/> instance that represents the source of
+    /// the deserialization event.
     /// </param>
     public override void OnDeserialization (object sender)
     {
@@ -1678,7 +1658,7 @@ namespace WebSocketSharp.Net
     /// </exception>
     public override void Remove (string name)
     {
-      name = checkName (name);
+      name = checkName (name, "name");
 
       var headerType = getHeaderType (name);
 
@@ -1704,13 +1684,13 @@ namespace WebSocketSharp.Net
     /// </param>
     /// <exception cref="ArgumentException">
     ///   <para>
-    ///   <paramref name="header"/> is a restricted header.
+    ///   <paramref name="value"/> contains an invalid character.
     ///   </para>
     ///   <para>
     ///   -or-
     ///   </para>
     ///   <para>
-    ///   <paramref name="value"/> contains an invalid character.
+    ///   <paramref name="header"/> is a restricted header.
     ///   </para>
     /// </exception>
     /// <exception cref="ArgumentOutOfRangeException">
@@ -1722,7 +1702,7 @@ namespace WebSocketSharp.Net
     /// </exception>
     public void Set (HttpRequestHeader header, string value)
     {
-      value = checkValue (value);
+      value = checkValue (value, "value");
 
       var key = header.ToString ();
       var name = getHeaderName (key);
@@ -1749,13 +1729,13 @@ namespace WebSocketSharp.Net
     /// </param>
     /// <exception cref="ArgumentException">
     ///   <para>
-    ///   <paramref name="header"/> is a restricted header.
+    ///   <paramref name="value"/> contains an invalid character.
     ///   </para>
     ///   <para>
     ///   -or-
     ///   </para>
     ///   <para>
-    ///   <paramref name="value"/> contains an invalid character.
+    ///   <paramref name="header"/> is a restricted header.
     ///   </para>
     /// </exception>
     /// <exception cref="ArgumentOutOfRangeException">
@@ -1767,7 +1747,7 @@ namespace WebSocketSharp.Net
     /// </exception>
     public void Set (HttpResponseHeader header, string value)
     {
-      value = checkValue (value);
+      value = checkValue (value, "value");
 
       var key = header.ToString ();
       var name = getHeaderName (key);
@@ -1797,6 +1777,12 @@ namespace WebSocketSharp.Net
     ///   -or-
     ///   </para>
     ///   <para>
+    ///   <paramref name="name"/> is a string of spaces.
+    ///   </para>
+    ///   <para>
+    ///   -or-
+    ///   </para>
+    ///   <para>
     ///   <paramref name="name"/> contains an invalid character.
     ///   </para>
     ///   <para>
@@ -1821,8 +1807,8 @@ namespace WebSocketSharp.Net
     /// </exception>
     public override void Set (string name, string value)
     {
-      name = checkName (name);
-      value = checkValue (value);
+      name = checkName (name, "name");
+      value = checkValue (value, "value");
 
       var headerType = getHeaderType (name);
 

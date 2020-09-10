@@ -44,13 +44,15 @@ using System.Collections.Generic;
 namespace WebSocketSharp.Net
 {
   /// <summary>
-  /// Provides the collection used to store the URI prefixes for the <see cref="HttpListener"/>.
+  /// Provides a collection used to store the URI prefixes for a instance of
+  /// the <see cref="HttpListener"/> class.
   /// </summary>
   /// <remarks>
-  /// The <see cref="HttpListener"/> responds to the request which has a requested URI that
-  /// the prefixes most closely match.
+  /// The <see cref="HttpListener"/> instance responds to the request which has
+  /// a requested URI that the prefixes most closely match.
   /// </remarks>
-  public class HttpListenerPrefixCollection : ICollection<string>, IEnumerable<string>, IEnumerable
+  public class HttpListenerPrefixCollection
+    : ICollection<string>, IEnumerable<string>, IEnumerable
   {
     #region Private Fields
 
@@ -84,7 +86,8 @@ namespace WebSocketSharp.Net
     }
 
     /// <summary>
-    /// Gets a value indicating whether the access to the collection is read-only.
+    /// Gets a value indicating whether the access to the collection is
+    /// read-only.
     /// </summary>
     /// <value>
     /// Always returns <c>false</c>.
@@ -96,7 +99,8 @@ namespace WebSocketSharp.Net
     }
 
     /// <summary>
-    /// Gets a value indicating whether the access to the collection is synchronized.
+    /// Gets a value indicating whether the access to the collection is
+    /// synchronized.
     /// </summary>
     /// <value>
     /// Always returns <c>false</c>.
@@ -112,11 +116,16 @@ namespace WebSocketSharp.Net
     #region Public Methods
 
     /// <summary>
-    /// Adds the specified <paramref name="uriPrefix"/> to the collection.
+    /// Adds the specified URI prefix to the collection.
     /// </summary>
     /// <param name="uriPrefix">
-    /// A <see cref="string"/> that represents the URI prefix to add. The prefix must be
-    /// a well-formed URI prefix with http or https scheme, and must end with a <c>'/'</c>.
+    ///   <para>
+    ///   A <see cref="string"/> that specifies the URI prefix to add.
+    ///   </para>
+    ///   <para>
+    ///   It must be a well-formed URI prefix with http or https scheme,
+    ///   and must end with a '/'.
+    ///   </para>
     /// </param>
     /// <exception cref="ArgumentNullException">
     /// <paramref name="uriPrefix"/> is <see langword="null"/>.
@@ -125,18 +134,24 @@ namespace WebSocketSharp.Net
     /// <paramref name="uriPrefix"/> is invalid.
     /// </exception>
     /// <exception cref="ObjectDisposedException">
-    /// The <see cref="HttpListener"/> associated with this collection is closed.
+    /// The <see cref="HttpListener"/> instance associated with this collection
+    /// is closed.
     /// </exception>
     public void Add (string uriPrefix)
     {
       _listener.CheckDisposed ();
+
       HttpListenerPrefix.CheckPrefix (uriPrefix);
+
       if (_prefixes.Contains (uriPrefix))
         return;
 
       _prefixes.Add (uriPrefix);
-      if (_listener.IsListening)
-        EndPointManager.AddPrefix (uriPrefix, _listener);
+
+      if (!_listener.IsListening)
+        return;
+
+      EndPointManager.AddPrefix (uriPrefix, _listener);
     }
 
     /// <summary>
